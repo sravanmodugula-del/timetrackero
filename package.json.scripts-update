@@ -1,0 +1,6 @@
+{
+  "test:rbac": "npx playwright test tests/e2e/rbac-ui.test.ts --project=chromium",
+  "test:rbac-dev": "./scripts/run-rbac-tests.sh development",
+  "test:rbac-prod": "./scripts/run-rbac-tests.sh production",
+  "test:rbac-ci": "npx playwright test tests/e2e/rbac-ui.test.ts --reporter=json,html --project=chromium"
+}

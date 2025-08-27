@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  sid    String   @id
+  sess   String
+  expire DateTime
+
+  @@map("sessions")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  userId      String   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departments Department[]
+
+  @@map("organizations")
+}
+
+model Department {
+  id             String        @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String        @map("organization_id")
+  managerId      String?       @unique @map("manager_id")
+  userId         String        @map("user_id")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  manager      Employee?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employees    Employee[]   @relation("DepartmentEmployees")
+
+  @@map("departments")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  firstName        String?   @map("first_name")
+  lastName         String?   @map("last_name")
+  profileImageUrl  String?   @map("profile_image_url")
+  role             String    @default("employee")
+  isActive         Boolean   @default(true) @map("is_active")
+  lastLoginAt      DateTime? @map("last_login_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  projects         Project[]
+  timeEntries      TimeEntry[]
+  employees        Employee[]
+  projectEmployees ProjectEmployee[]
+  organizations    Organization[]
+  departments      Department[]
+
+  @@map("users")
+}
+
+model Project {
+  id               String    @id @default(cuid())
+  name             String
+  projectNumber    String?   @map("project_number")
+  description      String?
+  color            String    @default("#1976D2")
+  startDate        DateTime? @map("start_date")
+  endDate          DateTime? @map("end_date")
+  isEnterpriseWide Boolean   @default(true) @map("is_enterprise_wide")
+  userId           String    @map("user_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user            User              @relation(fields: [userId], references: [id])
+  tasks           Task[]
+  timeEntries     TimeEntry[]
+  projectEmployees ProjectEmployee[]
+
+  @@map("projects")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  name        String
+  description String?
+  status      String    @default("active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  project     Project     @relation(fields: [projectId], references: [id])
+  timeEntries TimeEntry[]
+
+  @@map("tasks")
+}
+
+model TimeEntry {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  projectId   String   @map("project_id")
+  taskId      String?  @map("task_id")
+  description String?
+  date        DateTime
+  startTime   String   @map("start_time")
+  endTime     String   @map("end_time")
+  duration    Float
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project Project  @relation(fields: [projectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("time_entries")
+}
+
+model Employee {
+  id             String    @id @default(cuid())
+  employeeId     String    @unique @map("employee_id")
+  firstName      String    @map("first_name")
+  lastName       String    @map("last_name")
+  email          String?
+  phone          String?
+  departmentId   String?   @map("department_id")
+  position       String?
+  managerId      String?   @map("manager_id")
+  hireDate       DateTime? @map("hire_date")
+  salary         Float?
+  isActive       Boolean   @default(true) @map("is_active")
+  employmentType String    @default("full-time") @map("employment_type")
+  userId         String    @map("user_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user               User              @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  manager            Employee?         @relation("EmployeeManager", fields: [managerId], references: [id])
+  subordinates       Employee[]        @relation("EmployeeManager")
+  department         Department?       @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  projectEmployees   ProjectEmployee[]
+  managedDepartment  Department?       @relation("DepartmentManager")
+
+  @@map("employees")
+}
+
+model ProjectEmployee {
+  id         String   @id @default(cuid())
+  projectId  String   @map("project_id")
+  employeeId String   @map("employee_id")
+  userId     String   @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user     User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("project_employees")
+}
